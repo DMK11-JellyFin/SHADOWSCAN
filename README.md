@@ -1,42 +1,66 @@
 # SHADOWSCAN
 
-Local filesystem inventory and analysis tool written in Python. SHADOWSCAN scans a directory, classifies files, calculates SHA-256 hashes, detects byte-identical files, flags selected double-extension filenames, and exports CSV/JSON reports.
+Outil Windows d'inventaire et de rangement de fichiers : scan d'un dossier, détection des doublons et des noms suspects, classement assisté par une IA locale (Ollama).
 
-## Requirements
+## Installation
 
-- Python 3.10 or newer
-- No third-party dependencies
+Python 3.10+ requis.
 
-## Usage
+    pip install -r requirements-gui.txt
 
-```powershell
-py main.py
-py main.py --folder "D:\"
-py main.py --folder "C:\Users\YourName\Downloads" --output "reports"
-py main.py --folder "D:\Archive" --no-hash
-```
+## Lancement
 
-`--no-hash` skips SHA-256 calculation and therefore disables duplicate detection.
+| Besoin | Commande |
+|---|---|
+| Interface graphique | `python main.py --gui` |
+| Interface + scan immédiat | `python main.py --gui --scan --folder "C:\Users\HvKDMK11\Documents"` |
+| Interface sans console | `pythonw shadowscan_app.py` |
+| Ligne de commande (rapports CSV/JSON) | `python main.py --folder <dossier> --output <dossier de rapports>` |
 
-## Reports
+Options de la CLI : `--no-hash` désactive le SHA-256 (donc la détection de doublons).
 
-The output directory contains:
+## Fabriquer le logiciel (.exe)
 
-- `inventory.csv`: one row per scanned file
-- `duplicates.csv`: groups of files with identical SHA-256 hashes
-- `suspicious_files.csv`: selected double-extension filenames
-- `scan_errors.csv`: files that could not be inspected
-- `summary.json`: aggregate counts and storage by category
+Double-clic sur `build_exe.bat` (ou `.\build_exe.bat` dans PowerShell). Résultat : `dist\SHADOWSCAN.exe`, un seul fichier, sans console, avec son icône (`assets\shadowscan.ico`).
+Le fichier peut être copié où l'on veut (Bureau, barre des tâches…). Windows SmartScreen ou un antivirus peut le signaler, car il n'est pas signé.
 
-## Tests
+Les rapports et journaux d'annulation de l'exécutable sont écrits dans `Documents\SHADOWSCAN\`. En cas de plantage au démarrage : `Documents\SHADOWSCAN\erreur.log`.
 
-```powershell
-py -m unittest discover -s tests -v
-```
+## Fonctions de l'interface
 
-## Notes
+- **Tableau de bord** : scan en direct (compteurs, répartition par catégorie, plus gros fichiers), bouton Annuler, F5 pour lancer.
+- **Fichiers** : recherche (Ctrl+F), filtre par catégorie, tri.
+- **Doublons**, **Suspects**, **Erreurs** : listes détaillées. Double-clic ou clic droit : afficher dans l'Explorateur, copier le chemin.
+- **Rangement** : voir ci-dessous.
+- **Rapports** : `inventory.csv`, `duplicates.csv`, `suspicious_files.csv`, `scan_errors.csv`, `summary.json`, exportés à la fin de chaque scan.
+- Thème sombre ou clair.
 
-- The scanner does not modify, move, rename, or delete scanned files.
-- Symlinks are skipped.
-- A suspicious filename is a heuristic, not proof that a file is malicious.
-- SHA-256 duplicate detection compares file contents, not filenames.
+Le scan est en lecture seule : il ne supprime et ne déplace rien.
+
+## Rangement avec une IA locale (Ollama)
+
+1. Lance Ollama (`ollama serve` si besoin) et vérifie qu'un modèle est installé (`ollama list`).
+2. Onglet **Rangement** : choisis le dossier et le modèle, puis **Générer le plan**.
+3. Décoche les lignes à laisser en place, utilise **Changer le dossier…** pour corriger une proposition.
+4. **Appliquer** déplace les fichiers cochés après confirmation. **Annuler le rangement** remet tout à sa place grâce au journal enregistré dans `reports\journals\`.
+
+Garanties :
+
+- Aucune suppression et aucun écrasement : en cas de nom identique, le fichier devient `nom (1).ext`.
+- L'IA ne voit que les noms, tailles et extensions (jamais le contenu), et uniquement en local.
+- Par défaut, seuls les fichiers placés directement dans le dossier sont classés. Les sous-dossiers, `.git`, `node_modules`, fichiers cachés et téléchargements en cours sont ignorés.
+- Les faux doubles extensions (`facture.pdf.exe`) vont dans « À vérifier » sans passer par l'IA.
+- Si Ollama est injoignable ou répond mal, SHADOWSCAN classe par extension (colonne « Source » : Règle au lieu de IA).
+- Les racines de disque et les dossiers système (Windows, Program Files…) sont refusés.
+
+## Structure
+
+    main.py              CLI et option --gui
+    shadowscan_app.py    point d'entrée du logiciel (.exe)
+    build_exe.bat        fabrication de SHADOWSCAN.exe
+    assets/              icône
+    src/scanner.py       inventaire des fichiers
+    src/analyzer.py      doublons et noms suspects
+    src/reporter.py      export des rapports
+    src/gui.py           interface (CustomTkinter)
+    src/organizer.py     plan de rangement, Ollama, application et annulation
