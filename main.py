@@ -18,11 +18,13 @@ def main():
                         help="Skip SHA-256 hashing; duplicate detection will be unavailable.")
     parser.add_argument("--gui", action="store_true",
                         help="Launch the graphical interface (read-only, no file deletion).")
+    parser.add_argument("--scan", action="store_true",
+                        help="With --gui: start scanning immediately.")
     args = parser.parse_args()
 
     if args.gui:
         from src.gui import launch_gui
-        launch_gui(args.folder, args.output, calculate_hash=not args.no_hash)
+        launch_gui(args.folder, args.output, calculate_hash=not args.no_hash, autoscan=args.scan)
         return
 
     root = Path(args.folder).expanduser().resolve()
