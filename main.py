@@ -1,4 +1,4 @@
-# Python 3.10+ | Windows 11 | SHADOWSCAN CLI
+# Python 3.10+ | Windows 11 | SHADOWSCAN CLI + GUI
 from pathlib import Path
 import argparse
 from src.scanner import scan_directory
@@ -16,7 +16,14 @@ def main():
                         help="Report directory (default: ./reports).")
     parser.add_argument("--no-hash", action="store_true",
                         help="Skip SHA-256 hashing; duplicate detection will be unavailable.")
+    parser.add_argument("--gui", action="store_true",
+                        help="Launch the graphical interface (read-only, no file deletion).")
     args = parser.parse_args()
+
+    if args.gui:
+        from src.gui import launch_gui
+        launch_gui(args.folder, args.output, calculate_hash=not args.no_hash)
+        return
 
     root = Path(args.folder).expanduser().resolve()
     if not root.exists() or not root.is_dir():
